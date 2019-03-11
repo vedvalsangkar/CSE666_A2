@@ -7,7 +7,8 @@ def get_data():
     t_pre = "/train_"
     # comp = "/verify_comparisons_"
     # meta = "/verify_metadata_"
-    ext = "_clean.csv"
+    ext = ".csv"
+    # ext = "_clean.csv"
 
     col_names = ['TEMPLATE_ID', 'SUBJECT_ID', 'FILE', 'MEDIA_ID', 'SIGHTING_ID']
 

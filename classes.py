@@ -70,6 +70,10 @@ class A2TestDataSet(Dataset):
                 print("Unable to access image", self.images[i], "with index: {}. Deleting.".format(i))
                 del_list.append(i)
 
-        pd.DataFrame(data=np.delete(self.images, del_list)).to_csv("IJBA_sets/split"+str(split)+"/train_"+str(split)+"_clean.csv")
+        # pd.DataFrame(data=np.delete(self.images, del_list)).to_csv("IJBA_sets/split"+str(split)+"/train_"+str(split)+"_clean.csv")
+        self.data_info.drop(labels=self.data_info.index[del_list],
+                            inplace=True)
+        self.data_info.to_csv(path_or_buf="IJBA_sets/split"+str(split)+"/train_"+str(split)+"_clean.csv",
+                              index=False)
 
 
