@@ -2,10 +2,10 @@ import torch.nn as nn
 import torch.optim as optim
 
 
-class block(nn.Module):
+class Block(nn.Module):
 
     def __init__(self, layer1ch=3, layer2ch=32, bias=False):
-        super(block, self).__init__()
+        super(Block, self).__init__()
         self.layer1 = nn.Sequential(nn.Conv2d(in_channels=layer1ch,
                                               out_channels=layer2ch,
                                               kernel_size=3,
@@ -46,19 +46,24 @@ class block(nn.Module):
         return out
 
 
-class resnet101(nn.Module):
+class ResNet101(nn.Module):
 
     def __init__(self, num_classes=500):
-        super(resnet101, self).__init__()
+        super(ResNet101, self).__init__()
 
+        # Dropout rate
         self.do_rate = 0.1
+
+        # 203x202 image with 32 channels in the last superblock and 2x2 MaxPool layer at the end.
         self.l5out = int((203*202*32)/4)
+
+        # Final features
         self.features = 2048
 
-        self.layer1 = self.build_layer(3, block, 3, 16)
-        self.layer2 = self.build_layer(4, block, 16, 16)
-        self.layer3 = self.build_layer(23, block, 16, 32)
-        self.layer4 = self.build_layer(3, block, 32, 32)
+        self.layer1 = self.build_layer(3, Block, 3, 16)
+        self.layer2 = self.build_layer(4, Block, 16, 16)
+        self.layer3 = self.build_layer(23, Block, 16, 32)
+        self.layer4 = self.build_layer(3, Block, 32, 32)
         self.layer5 = nn.Sequential(nn.MaxPool2d(kernel_size=2,
                                                  stride=2),
                                     nn.Dropout(self.do_rate)
@@ -155,7 +160,7 @@ class resnet101(nn.Module):
 
 
 def get_model(device, opt='Adam', num_classes=500, lamb=0.01, learning_rate=0.01):
-    model = resnet101(num_classes=num_classes).to(device)
+    model = ResNet101(num_classes=num_classes).to(device)
     criterion = nn.CrossEntropyLoss()
     if opt == 'Adam':
         optimizer = optim.Adam(model.parameters(), lr=learning_rate, weight_decay=lamb)

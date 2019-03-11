@@ -77,3 +77,60 @@ class A2TestDataSet(Dataset):
                               index=False)
 
 
+class A2VerifyDataSet(Dataset):
+
+    def __init__(self, comp_file, meta_file, image_root_folder='IJBA_images/'):
+
+        # col_names = ['TEMPLATE_ID', 'SUBJECT_ID', 'FILE', 'MEDIA_ID', 'SIGHTING_ID']
+        meta_cols = ['TEMPLATE_ID', 'SUBJECT_ID', 'FILE']
+        comp_cols = ['TEMPLATE_1', 'TEMPLATE_2']
+
+        self.comp_data = pd.read_csv(filepath_or_buffer=comp_file,
+                                     header=None,
+                                     # usecols=comp_cols,
+                                     dtype=object)
+        self.comp_data.columns = comp_cols
+
+        self.template_1 = self.comp_data['TEMPLATE_1'].values.tolist()
+        self.template_2 = self.comp_data['TEMPLATE_2'].values.tolist()
+
+        self.meta_data = pd.read_csv(filepath_or_buffer=meta_file,
+                                     header=0,
+                                     usecols=meta_cols,
+                                     dtype=object)
+
+        self.data_len = len(self.comp_data.index)
+
+    def __getitem__(self, index):
+        template_1 = self.template_1[index]
+        template_2 = self.template_2[index]
+
+        t1 = self.meta_data[self.meta_data['TEMPLATE_ID'] == template_1].reset_index()
+        t2 = self.meta_data[self.meta_data['TEMPLATE_ID'] == template_2].reset_index()
+
+        list1 = (t1['SUBJECT_ID']+'/'+t1['FILE']).values.tolist()
+        list2 = (t2['SUBJECT_ID']+'/'+t2['FILE']).values.tolist()
+
+        label1 = t1.loc[0, 'SUBJECT_ID']
+        label2 = t2.loc[0, 'SUBJECT_ID']
+
+        return list1, list2, label1==label2
+
+    def __len__(self):
+        return self.data_len
+
+    # def clean(self, split):
+    #     # image_label = self.labels[index]
+    #     del_list = []
+    #     for i in range(self.data_len):
+    #         try:
+    #             image = Image.open(self.images[i])
+    #         except:
+    #             print("Unable to access image", self.images[i], "with index: {}. Deleting.".format(i))
+    #             del_list.append(i)
+    #
+    #     # pd.DataFrame(data=np.delete(self.images, del_list)).to_csv("IJBA_sets/split"+str(split)+"/train_"+str(split)+"_clean.csv")
+    #     self.data_info.drop(labels=self.data_info.index[del_list],
+    #                         inplace=True)
+    #     self.data_info.to_csv(path_or_buf="IJBA_sets/split"+str(split)+"/train_"+str(split)+"_clean.csv",
+    #                           index=False)
