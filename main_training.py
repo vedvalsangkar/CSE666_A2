@@ -2,6 +2,7 @@
 
 # import pandas as pd.
 import torch
+import sys
 
 from torch import cuda
 from torch.utils import data
@@ -48,12 +49,15 @@ def get_data(training_batch_size=256, testing_batch_size=1, shuffle=False):
     return training_set, training_loader, testing_set, testing_loader
 
 
-def main():
+def main(opts):
 
     device = torch.device("cuda:0" if cuda.is_available() else "cpu")
 
     num_epochs = 25
-    batch_size = 100
+    if len(opts) > 1:
+        batch_size = int(opts[1])
+    else:
+        batch_size = 100
 
     op_dir = "pickles/"
     t_stmp = time.strftime("%Y%m%d_%H%M%S", time.gmtime())
@@ -68,7 +72,8 @@ def main():
 
     model.train(True)
 
-    # torch.save(model.state_dict(), op_dir+"dummy2.pt")
+    if len(opts) > 2:
+        torch.save(model.state_dict(), op_dir+"dummy2.pt")
 
     for set_n in range(1, 11):
 
@@ -122,7 +127,9 @@ def main():
 
 if __name__ == "__main__":
 
-    main()
+    options = sys.argv
+
+    main(options)
 
     # for s in ts:
     #     data = ts[s]
