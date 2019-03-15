@@ -66,10 +66,10 @@ class ResNet(nn.Module):
         self.do_rate = 0.1
 
         # 203x202 image with 32 channels in the last superblock and 2x2 MaxPool layer at the end.
-        self.L5_out_size = int(101 * 101 * 32)
+        self.L5_out_size = int(50 * 50 * 32)
 
         # Final features
-        self.features = 2048
+        self.features = 1024
 
         self.conv1 = nn.Sequential(nn.Conv2d(in_channels=3,
                                              out_channels=16,
@@ -81,7 +81,7 @@ class ResNet(nn.Module):
                                    )
 
         self.layer1 = self.build_layer(3, Block, 16, 16)
-        self.layer2 = self.build_layer(4, Block, 16, 16)
+        self.layer2 = self.build_layer(3, Block, 16, 16)
         self.layer2_5 = nn.Sequential(nn.Conv2d(in_channels=16,
                                                 out_channels=32,
                                                 kernel_size=1,
@@ -89,9 +89,11 @@ class ResNet(nn.Module):
                                                 padding=0,
                                                 bias=False),
                                       nn.ReLU(),
+                                      nn.MaxPool2d(kernel_size=2,
+                                                   stride=2)
                                       )
         # self.layer3 = self.build_layer(23, Block, 32, 32)
-        self.layer3 = self.build_layer(6, Block, 32, 32)
+        self.layer3 = self.build_layer(3, Block, 32, 32)
         self.layer4 = self.build_layer(3, Block, 32, 32)
         self.layer5 = nn.Sequential(nn.MaxPool2d(kernel_size=2,
                                                  stride=2),
