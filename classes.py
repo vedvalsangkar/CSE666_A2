@@ -14,6 +14,7 @@ import numpy as np
 
 import torch
 
+from torch.utils import data
 from torchvision import transforms
 from PIL import Image
 from torch.utils.data.dataset import Dataset
@@ -136,3 +137,83 @@ class A2VerifyDataSet(Dataset):
 
     def __len__(self):
         return self.data_len
+
+
+class Helper:
+
+    def __init__(self, filename="log.txt"):
+        self.file = open(file=filename,
+                         mode='w')
+        self.local = False
+
+    def set_local(self, flag=True):
+        self.local = flag
+
+    def log(self, msg, end="\n"):
+        if self.local:
+            print(msg, end=end)
+        else:
+            print(msg, end=end, file=self.file)
+
+    def close(self):
+        self.file.close()
+
+    def get_data(self, mode="both", training_batch_size=256, testing_batch_size=1, shuffle=False):
+        """
+
+        :param mode: Data load mode. 'train', 'test' or 'both'.
+        :param training_batch_size: Batch size for training.
+        :param testing_batch_size: Batch size for testing.
+        :param shuffle:
+        :return:
+        """
+
+        split_pre = "IJBA_sets/split"
+        t_pre = "/train_"
+        comp = "/verify_comparisons_"
+        meta = "/verify_metadata_"
+        ext = ".csv"
+        ext2 = "_clean.csv"
+
+        # col_names = ['TEMPLATE_ID', 'SUBJECT_ID', 'FILE', 'MEDIA_ID', 'SIGHTING_ID']
+
+        training_set = {}
+        training_loader = {}
+        testing_set = {}
+        testing_loader = {}
+        # comparison_set = {}
+        # metadata_set = {}
+
+        if mode == 'train' or mode == 'both':
+            for set_n in range(1, 11):
+                training_set[set_n] = A2TrainDataSet(split_pre + str(set_n) + t_pre + str(set_n) + ext2)
+                training_loader[set_n] = data.DataLoader(dataset=training_set[set_n],
+                                                         batch_size=training_batch_size,
+                                                         shuffle=shuffle)
+        if mode == 'test' or mode == 'both':
+            for set_n in range(1, 11):
+                testing_set[set_n] = A2VerifyDataSet(comp_file=split_pre + str(set_n) + comp + str(set_n) + ext,
+                                                     meta_file=split_pre + str(set_n) + meta + str(set_n) + ext)
+
+                testing_loader[set_n] = data.DataLoader(dataset=testing_set[set_n],
+                                                        batch_size=testing_batch_size,
+                                                        shuffle=shuffle)
+
+        # for set_n in range(1, 11):
+        #     training_set[set_n] = A2TrainDataSet(split_pre + str(set_n) + t_pre + str(set_n) + ext2)
+        #     testing_set[set_n] = A2VerifyDataSet(comp_file=split_pre + str(set_n) + comp + str(set_n) + ext,
+        #                                          meta_file=split_pre + str(set_n) + meta + str(set_n) + ext)
+        #
+        #     training_loader[set_n] = data.DataLoader(dataset=training_set[set_n],
+        #                                              batch_size=training_batch_size,
+        #                                              shuffle=shuffle)
+        #
+        #     testing_loader[set_n] = data.DataLoader(dataset=testing_set[set_n],
+        #                                             batch_size=testing_batch_size,
+        #                                             shuffle=shuffle)
+        if mode == 'train':
+            return training_set, training_loader
+        if mode == 'test':
+            return testing_set, testing_loader
+
+        return training_set, training_loader, testing_set, testing_loader
