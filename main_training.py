@@ -3,6 +3,7 @@ import torch
 
 from torch import cuda
 from torch.utils import data
+# from PIL import Image
 
 import time
 
@@ -50,7 +51,7 @@ def main():
     device = torch.device("cuda:0" if cuda.is_available() else "cpu")
 
     num_epochs = 25
-    batch_size = 50
+    batch_size = 1
 
     op_dir = "pickles/"
     t_stmp = time.strftime("%Y%m%d_%H%M%S", time.gmtime())
@@ -63,24 +64,26 @@ def main():
 
     print("Finished data loading. Starting main training.")
 
-    print(training_set[1].__getitem__(1))
+    model.train(True)
 
-    print("Finished data loading. Starting main training.")
+    # torch.save(model.state_dict(), op_dir+"dummy2.pt")
 
     for set_n in range(1, 11):
 
         print("\nStart of split {0}\n".format(set_n))
 
+        # total_len = training_set[set_n].__len__()
         total_len = training_set[set_n].__len__()
         running_loss = 0.0
 
         for epoch in range(num_epochs):
             for i, (images, labels) in enumerate(training_loader[set_n]):
-            # i = 0
-            # for images, labels in training_loader:
+
                 # Change variable type to match GPU requirements
                 inp = images.to(device)
                 lab = labels.to(device)
+
+                a = images.size()
 
                 # Reset gradients before processing
                 optimizer.zero_grad()
@@ -95,18 +98,20 @@ def main():
                 loss.backward()
                 optimizer.step()
 
-                running_loss += loss.data[0] if len(loss.data) > 1 else loss.data
+                l = loss.data[0] if len(loss.data) > 1 else loss.data
 
+                running_loss += l
+                print("\rLoss = {0}        ".format(l), end="")
                 if i+1 % 10 == 0:
                     # print("Epoch " + str(epoch) + " Step " + str(i + 1) + "/" + str(total_len), end="\t")
-                    print("Epoch: {0}, step: {1}/{2}".format(epoch+1, i+1, total_len), end="\t")
+                    print("\rEpoch: {0}, step: {1}/{2}".format(epoch+1, i+1, total_len), end="\t")
                     # print("Running Loss data: ", loss.data)
                     print("Running Loss (avg): ", running_loss/10)
                     running_loss = 0.0
 
                 # i += 1
 
-        filename = op_dir + "A2_S{0}_{1}.ckpt".format(set_n, t_stmp)
+        filename = op_dir + "A2_S{0}_{1}.pt".format(set_n, t_stmp)
         torch.save(model.state_dict(), filename)
         print("\nFile {0} saved for split {1}".format(filename, set_n))
 
