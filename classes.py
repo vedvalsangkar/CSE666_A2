@@ -1,3 +1,5 @@
+#!/usr/bin/python3.5
+
 # The custom datasets used for assignment 2 were built using the following site as a guide:
 # https://github.com/utkuozbulak/pytorch-custom-dataset-examples
 #

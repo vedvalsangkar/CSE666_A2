@@ -1,3 +1,5 @@
+#!/usr/bin/python3.5
+
 # The following model has been built with the following site as reference:
 # https://github.com/kuangliu/pytorch-cifar/blob/master/models/resnet.py
 #

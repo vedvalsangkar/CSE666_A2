@@ -1,3 +1,5 @@
+#!/usr/bin/python3.5
+
 # import pandas as pd
 import torch
 
@@ -51,7 +53,7 @@ def main():
     device = torch.device("cuda:0" if cuda.is_available() else "cpu")
 
     num_epochs = 25
-    batch_size = 1
+    batch_size = 100
 
     op_dir = "pickles/"
     t_stmp = time.strftime("%Y%m%d_%H%M%S", time.gmtime())
@@ -66,7 +68,7 @@ def main():
 
     model.train(True)
 
-    torch.save(model.state_dict(), op_dir+"dummy2.pt")
+    # torch.save(model.state_dict(), op_dir+"dummy2.pt")
 
     for set_n in range(1, 11):
 
@@ -98,13 +100,15 @@ def main():
                 loss.backward()
                 optimizer.step()
 
-                l = loss.data[0] if len(loss.data) > 1 else loss.data
-
-                running_loss += l
-                print("\rLoss = {0}        ".format(l), end="")
+                print(loss.data)
+                # l = loss.data[0] if len(loss.data) > 1 else loss.data
+                #
+                # running_loss += l
+                # print("\rLoss = {0}        ".format(l), end="")
                 if i+1 % 10 == 0:
                     # print("Epoch " + str(epoch) + " Step " + str(i + 1) + "/" + str(total_len), end="\t")
-                    print("\rEpoch: {0}, step: {1}/{2}".format(epoch+1, i+1, total_len), end="\t")
+                    # print("\rEpoch: {0}, step: {1}/{2}".format(epoch+1, i+1, total_len), end="\t")
+                    print("Epoch: {0}, step: {1}/{2}".format(epoch+1, i+1, total_len), end="\t")
                     # print("Running Loss data: ", loss.data)
                     print("Running Loss (avg): ", running_loss/10)
                     running_loss = 0.0

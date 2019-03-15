@@ -1,3 +1,5 @@
+#!/usr/bin/python3.5
+
 # https://pytorch.org/tutorials/beginner/saving_loading_models.html
 #
 # https://stackoverflow.com/questions/52548174/how-to-remove-the-last-fc-layer-from-a-resnet-model-in-pytorch
