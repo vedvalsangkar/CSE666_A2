@@ -4,7 +4,7 @@
 #
 # https://stackoverflow.com/questions/52548174/how-to-remove-the-last-fc-layer-from-a-resnet-model-in-pytorch
 #
-# .
+#
 
 import torch
 

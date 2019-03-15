@@ -1,6 +1,6 @@
 #!/usr/bin/python3.5
 
-# import pandas as pd
+# import pandas as pd.
 import torch
 
 from torch import cuda
