@@ -97,7 +97,7 @@ def main(opts):
         batch_size = 10
 
     helper = Helper("log/log_" + t_stmp + ".txt")
-    # helper.set_local()
+    helper.set_local()
 
     # logger.log(msg=)
 
