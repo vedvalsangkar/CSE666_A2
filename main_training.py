@@ -66,7 +66,7 @@ def main():
 
     model.train(True)
 
-    # torch.save(model.state_dict(), op_dir+"dummy2.pt")
+    torch.save(model.state_dict(), op_dir+"dummy2.pt")
 
     for set_n in range(1, 11):
 
