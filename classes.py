@@ -21,9 +21,6 @@ from torch.utils.data.dataset import Dataset
 
 
 class A2TrainDataSet(Dataset):
-    """
-    Custom dataset class for loading training images.
-    """
 
     def __init__(self, csv_file, image_root_folder='IJBA_images/'):
 
@@ -72,6 +69,7 @@ class A2TrainDataSet(Dataset):
         #     return image_name, image_label
         image = Image.open(image_name)
 
+        # tensor_img = self.to_tensor(image.convert("L"))
         tensor_img = self.to_tensor(image)
 
         return tensor_img, torch.tensor(image_label)
@@ -133,7 +131,7 @@ class A2VerifyDataSet(Dataset):
         label1 = t1.loc[0, 'SUBJECT_ID']
         label2 = t2.loc[0, 'SUBJECT_ID']
 
-        return list1, list2, label1 == label2
+        return list1, list2, (label1 == label2)
 
     def __len__(self):
         return self.data_len
@@ -144,28 +142,29 @@ class Helper:
     def __init__(self, filename="log.txt"):
         self.file = open(file=filename,
                          mode='w')
-        self.local = False
+        self.flag_file = False
 
-    def set_local(self, flag=True):
-        self.local = flag
+    def write_file(self, flag=False):
+        self.flag_file = flag
 
     def log(self, msg, end="\n"):
-        if self.local:
-            print(msg, end=end)
-        else:
+        if self.flag_file:
             print(msg, end=end, file=self.file)
+        else:
+            print(msg, end=end)
 
     def close(self):
         self.file.close()
 
-    def get_data(self, mode="both", training_batch_size=256, testing_batch_size=1, shuffle=False):
+    def get_data(self, mode="both", training_batch_size=256, testing_batch_size=1, shuffle=True):
         """
+        Get training and testing datasets and loaders.
 
-        :param mode: Data load mode. 'train', 'test' or 'both'.
-        :param training_batch_size: Batch size for training.
-        :param testing_batch_size: Batch size for testing.
-        :param shuffle:
-        :return:
+        :param mode                : Data load mode. 'train', 'test' or 'both'.
+        :param training_batch_size : Batch size for training.
+        :param testing_batch_size  : Batch size for testing.
+        :param shuffle             : Shuffle input images
+        :return:                   : Training and testing datasets and loaders as created.
         """
 
         split_pre = "IJBA_sets/split"

@@ -10,18 +10,20 @@
 # import torch.nn as nn
 # import torch.optim as optim
 from torch import nn, optim
+import numpy as np
+from torch.nn import functional as F
 
 
 class Block(nn.Module):
 
-    def __init__(self, layer1ch, layer2ch, bias=False):
+    def __init__(self, layer1ch, layer2ch, bias=True):
         super(Block, self).__init__()
 
         self.layer1 = nn.Sequential(nn.Conv2d(in_channels=layer1ch,
                                               out_channels=layer2ch,
-                                              kernel_size=3,
+                                              kernel_size=1,
                                               stride=1,
-                                              padding=1,
+                                              padding=0,
                                               bias=bias),
                                     nn.ReLU(),
                                     )
@@ -35,9 +37,9 @@ class Block(nn.Module):
                                     )
         self.layer3 = nn.Sequential(nn.Conv2d(in_channels=layer2ch,
                                               out_channels=layer2ch,
-                                              kernel_size=3,
+                                              kernel_size=1,
                                               stride=1,
-                                              padding=1,
+                                              padding=0,
                                               bias=bias),
                                     nn.ReLU(),
                                     )
@@ -60,8 +62,15 @@ class Block(nn.Module):
 
 
 class ResNet(nn.Module):
+    """
+    Custom dataset class for loading training images.
 
-    def __init__(self, num_classes=500):
+    resnet34  : 3,4,6,3 with 2 layer block.
+    resnet50  : 3,4,6,3 with 3 layer block.
+    resnet101 : 3,4,23,3 with 3 layer block.
+    """
+
+    def __init__(self, num_classes=500, bias=True):
         super(ResNet, self).__init__()
 
         # Dropout rate
@@ -79,7 +88,7 @@ class ResNet(nn.Module):
                                              kernel_size=3,
                                              stride=1,
                                              padding=1,
-                                             bias=False),
+                                             bias=bias),
                                    nn.ReLU(),
                                    )
 
@@ -87,21 +96,21 @@ class ResNet(nn.Module):
 
         # self.layer1_5 = nn.MaxPool2d(kernel_size=2, stride=2)       # Size is halved
 
-        self.layer2 = self.build_layer(3, Block, 16, 16)
+        self.layer2 = self.build_layer(4, Block, 16, 16)
 
         self.layer2_5 = nn.Sequential(nn.Conv2d(in_channels=16,
                                                 out_channels=32,
                                                 kernel_size=1,
                                                 stride=1,
                                                 padding=0,
-                                                bias=False),
+                                                bias=bias),
                                       nn.ReLU(),
                                       nn.MaxPool2d(kernel_size=2,
                                                    stride=2)
                                       )  # Size is halved
 
         # self.layer3 = self.build_layer(23, Block, 32, 32)
-        self.layer3 = self.build_layer(3, Block, 32, 32)
+        self.layer3 = self.build_layer(6, Block, 32, 32)
 
         # self.layer3_5 = nn.MaxPool2d(kernel_size=2, stride=2)       # Size is halved
 
@@ -109,15 +118,16 @@ class ResNet(nn.Module):
 
         self.layer5 = nn.Sequential(nn.MaxPool2d(kernel_size=2,
                                                  stride=2),
-                                    nn.Dropout(self.do_rate)  # Size is halved
+                                    # nn.Dropout(self.do_rate)  # Size is halved
                                     )
 
         self.feat_layer = nn.Sequential(nn.Linear(self.L5_out_size, self.features),
                                         nn.ReLU(),
-                                        nn.Dropout(self.do_rate)
+                                        # nn.Dropout(self.do_rate)
                                         )
         self.class_layer = nn.Sequential(nn.Linear(self.features, num_classes),
-                                         nn.Softmax(dim=1)
+                                         # nn.ReLU(),
+                                         nn.LogSoftmax(dim=1)
                                          )
 
     def forward(self, x):
@@ -133,8 +143,21 @@ class ResNet(nn.Module):
         out = out.reshape(out.size(0), -1)
         # print(out.size())
         out = self.feat_layer(out)
-        out = self.class_layer(out)
+        # print(out)
         # print(out.size())
+        if self.training:
+            out = self.class_layer(out)
+
+            # pre_sm = out
+            # pre_sm = pre_sm.cpu().detach().numpy()
+            #
+            # pre_sm = np.divide(np.exp(pre_sm), np.sum(np.exp(pre_sm), 1).reshape(16, 1))
+            #
+            # out = F.softmax(out, 1)
+        # else:
+
+        #     out = out
+        # print(out.numpy())
         return out
 
     def build_layer(self, num_blocks, block_class, in_ch, out_ch):
@@ -150,7 +173,7 @@ def get_model(device, opt='Adam', num_classes=500, lamb=0.01, learning_rate=0.01
     model = ResNet(num_classes=num_classes).to(device)
     criterion = nn.CrossEntropyLoss()
     if opt == 'Adam':
-        optimizer = optim.Adam(model.parameters(), lr=learning_rate, weight_decay=lamb)
+        optimizer = optim.Adam(model.parameters(), lr=learning_rate, weight_decay=lamb, amsgrad=True)
     elif opt == 'SGD':
         optimizer = optim.SGD(model.parameters(), lr=learning_rate, weight_decay=lamb)
     else:
