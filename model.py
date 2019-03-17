@@ -7,16 +7,19 @@
 #
 
 
-# import torch.nn as nn
-# import torch.optim as optim
 from torch import nn, optim
-import numpy as np
 from torch.nn import functional as F
 
 
 class Block(nn.Module):
 
     def __init__(self, layer1ch, layer2ch, bias=False):
+        """
+        Block class for Residual Neural Network. 2 or 3 layer.
+        :param layer1ch: Input channels
+        :param layer2ch:
+        :param bias:
+        """
         super(Block, self).__init__()
 
         self.layer1 = nn.Sequential(nn.Conv2d(in_channels=layer1ch,
@@ -54,11 +57,7 @@ class Block(nn.Module):
         out = self.layer1(x)
         out = self.layer2(out)
         # out = self.layer3(out)
-        # out += self.res_layer(x)
         out += x
-        # out = out.reshape(out.size(0), -1)
-        # out = self.fc1(out)
-        # out = self.fc(out)
         return self.relu(out)
         # return out
 

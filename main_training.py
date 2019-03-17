@@ -30,7 +30,7 @@ def main(batch_size, num_epochs, lr, file_write, flag_dummy, temperature, lr_dec
     # optim_name = 'SGD'
     optim_name = 'Adam'
     # optim_name = 'RMS'
-    batch_printer = 50
+    batch_print = 50
     op_dir = "pickles/"
     t_stmp = time.strftime("%Y%m%d_%H%M%S", time.gmtime())
 
@@ -73,7 +73,8 @@ def main(batch_size, num_epochs, lr, file_write, flag_dummy, temperature, lr_dec
             dummy_file = {"model": model.state_dict(),
                           "criterion": criterion.state_dict(),
                           "optimizer": optimizer.state_dict(),
-                          "optim_name": optim_name
+                          "optim_name": optim_name,
+                          "features": features
                           }
             torch.save(dummy_file, op_dir + "dummy.pt")
             flag_dummy = False
@@ -90,7 +91,7 @@ def main(batch_size, num_epochs, lr, file_write, flag_dummy, temperature, lr_dec
         tot = 0
         cor_b = 0
         tot_b = 0
-        past_loss = 6.0 * batch_printer
+        past_loss = 6.0 * batch_print
 
         for epoch in range(num_epochs):
             for i, (images, labels) in enumerate(training_loader[set_n]):
@@ -127,7 +128,7 @@ def main(batch_size, num_epochs, lr, file_write, flag_dummy, temperature, lr_dec
 
                 running_loss += loss.item()
                 # logger.log(msg="\rLoss = {0}        ".format(l), end="")
-                if (i + 1) % batch_printer == 0 or (i + 1) == total_len:
+                if (i + 1) % batch_print == 0:
 
                     # plt.imsave("img/im_{0}_{1}_{2}.jpg".format(set_n, epoch, i+1),
                     #            images[0].numpy().transpose(1, 2, 0))
@@ -138,12 +139,12 @@ def main(batch_size, num_epochs, lr, file_write, flag_dummy, temperature, lr_dec
                     helper.log(msg="Split: {3}, Epoch: {0}, step: {1}/{2} ".format(epoch + 1, i + 1, total_len, set_n),
                                end="\t")
                     # logger.log(msg="Running Loss data: ", loss.data)
-                    helper.log(msg="Running Loss (avg): {0:.06f}, Past: {1:.06f}".format((running_loss / batch_printer),
-                                                                                         (past_loss / batch_printer)),
+                    helper.log(msg="Running Loss (avg): {0:.06f}, Past: {1:.06f}".format((running_loss / batch_print),
+                                                                                         (past_loss / batch_print)),
                                end="\t")
-                    helper.log(msg="Accuracy (Per {2})|(Total): {0:.03f}|{1:.03f} %".format((cor_b * 100) / tot_b,
-                                                                                            (cor * 100) / tot,
-                                                                                            batch_size * batch_printer),
+                    helper.log(msg="Accuracy: (Per {2})|(Total): {0:.03f}|{1:.03f} %".format((cor_b * 100) / tot_b,
+                                                                                             (cor * 100) / tot,
+                                                                                             batch_size * batch_print),
                                end="\t")
 
                     if running_loss < past_loss:
@@ -166,7 +167,8 @@ def main(batch_size, num_epochs, lr, file_write, flag_dummy, temperature, lr_dec
         save_file = {"model": model.state_dict(),
                      "criterion": criterion.state_dict(),
                      "optimizer": optimizer.state_dict(),
-                     "optim_name": optim_name
+                     "optim_name": optim_name,
+                     "features": features
                      }
 
         torch.save(save_file, filename)
