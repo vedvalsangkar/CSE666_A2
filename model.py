@@ -72,7 +72,7 @@ class ResNet(nn.Module):
     resnet101 : 3,4,23,3 with 3 layer block.
     """
 
-    def __init__(self, num_classes=500, bias=False):
+    def __init__(self, num_classes=500, final_features=1024, bias=False):
         """
         ResNet constructor class.
         :param num_classes : Number of classes (default 500).
@@ -86,11 +86,11 @@ class ResNet(nn.Module):
         self.temperature = 0.9
 
         # 203x202 image with 32 channels in the last superblock and 2x2 MaxPool layer at the end.
+        # 203->101->50
         self.L5_out_size = int(50 * 50 * 32)
-        # 203->101->50(we are here)->25
 
         # Final features
-        self.features = 1024
+        self.features = final_features
 
         self.conv1 = nn.Sequential(nn.Conv2d(in_channels=3,
                                              out_channels=16,
@@ -102,8 +102,6 @@ class ResNet(nn.Module):
                                    )
 
         self.layer1 = self._build_layer(3, Block, 16, 16)
-
-        # self.layer1_5 = nn.MaxPool2d(kernel_size=2, stride=2)       # Size is halved
 
         self.layer2 = self._build_layer(4, Block, 16, 16)
 
@@ -120,8 +118,6 @@ class ResNet(nn.Module):
 
         # self.layer3 = self.build_layer(23, Block, 32, 32)
         self.layer3 = self._build_layer(6, Block, 32, 32)
-
-        # self.layer3_5 = nn.MaxPool2d(kernel_size=2, stride=2)       # Size is halved
 
         self.layer4 = self._build_layer(3, Block, 32, 32)
 
@@ -143,32 +139,21 @@ class ResNet(nn.Module):
 
     def forward(self, x):
         out = self.conv1(x)
-        # print(out.size())
         out = self.layer1(out)
         out = self.layer2(out)
         out = self.layer2_5(out)
         out = self.layer3(out)
         out = self.layer4(out)
         out = self.layer5(out)
-        # print(out.size())
         out = out.reshape(out.size(0), -1)
-        # print(out.size())
         out = self.feat_layer(out)
-        # print(out)
-        # print(out.size())
         if self.training:
-            out = self.class_layer(out)
-
-            # pre_sm = out
-            # pre_sm = pre_sm.cpu().detach().numpy()
-            #
-            # pre_sm = np.divide(np.exp(pre_sm), np.sum(np.exp(pre_sm), 1).reshape(16, 1))
-            #
-            out = F.log_softmax(out / self.temperature, 1)
+            # out = self.class_layer(out)
+            # out = F.log_softmax(out / self.temperature, 1)
+            out = F.log_softmax(self.class_layer(out) / self.temperature, 1)
         # else:
-
         #     out = out
-        # print(out.numpy())
+
         return out
 
     @staticmethod
@@ -192,9 +177,11 @@ class ResNet(nn.Module):
         self.temperature = temp
 
 
-def get_model(device, opt='Adam', num_classes=500, lamb=0.01, learning_rate=0.01):
-    model = ResNet(num_classes=num_classes).to(device)
+def get_model(device, opt='Adam', num_classes=500, lamb=0.01, learning_rate=0.01, final_features=1024):
+
+    model = ResNet(num_classes=num_classes, final_features=final_features).to(device)
     criterion = nn.CrossEntropyLoss()
+    # criterion = nn.NLLLoss()
     if opt == 'Adam':
         optimizer = optim.Adam(model.parameters(), lr=learning_rate, weight_decay=lamb, amsgrad=False,)
     elif opt == 'SGD':

@@ -11,7 +11,7 @@ import model as mod
 from classes import Helper
 
 
-def main(batch_size, num_epochs, lr, file_write, flag_dummy, temperature, lr_decay):
+def main(batch_size, num_epochs, lr, file_write, flag_dummy, temperature, lr_decay, features):
     """
     Main function for training.
     :param batch_size  : Batch size to use.
@@ -21,6 +21,7 @@ def main(batch_size, num_epochs, lr, file_write, flag_dummy, temperature, lr_dec
     :param flag_dummy  : Create a dummy file for evaluation.
     :param temperature : Set default temperature for softmax/log_softmax layer while training.
     :param lr_decay    : Learning rate decay for every drop in min loss observed.
+    :param features    : Number of nodes for penultimate feature layer.
     :return:
     """
 
@@ -62,7 +63,7 @@ def main(batch_size, num_epochs, lr, file_write, flag_dummy, temperature, lr_dec
 
         init_lr = lr
 
-        model, criterion, optimizer = mod.get_model(device, optim_name, lamb=0, learning_rate=init_lr)
+        model, criterion, optimizer = mod.get_model(device, optim_name, lamb=0, learning_rate=init_lr, final_features=features)
         model.train(True)
         model.set_temperature(temperature)
         # print(type(optimizer))
@@ -80,7 +81,9 @@ def main(batch_size, num_epochs, lr, file_write, flag_dummy, temperature, lr_dec
         helper.log(msg="\nStart of split {0}\n".format(set_n))
 
         # https://stackoverflow.com/questions/32558805/ceil-and-floor-equivalent-in-python-3-without-math-module
-        total_len = -(-training_set[set_n].__len__() // batch_size)
+        # total_len = -(-training_set[set_n].__len__() // batch_size)
+        total_len = len(training_loader[set_n])
+
         # total_len = training_set[set_n].__len__()
         running_loss = 0.0
         cor = 0
@@ -124,7 +127,7 @@ def main(batch_size, num_epochs, lr, file_write, flag_dummy, temperature, lr_dec
 
                 running_loss += loss.item()
                 # logger.log(msg="\rLoss = {0}        ".format(l), end="")
-                if (i + 1) % batch_printer == 0:
+                if (i + 1) % batch_printer == 0 or (i + 1) == total_len:
 
                     # plt.imsave("img/im_{0}_{1}_{2}.jpg".format(set_n, epoch, i+1),
                     #            images[0].numpy().transpose(1, 2, 0))
@@ -211,6 +214,12 @@ if __name__ == "__main__":
                         help="Learning rate decay (default 0.95)")
 
     parser.add_argument("-f",
+                        "--features",
+                        type=int,
+                        default=1024,
+                        help="Number of features for penultimate layer")
+
+    parser.add_argument("-w",
                         "--file-write",
                         action="store_true",
                         default=False,
@@ -225,4 +234,4 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     main(args.batch_size, args.num_epochs, args.lr, args.file_write,
-         args.create_dummy, args.temperature, args.lr_decay)
+         args.create_dummy, args.temperature, args.lr_decay, args.features)

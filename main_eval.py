@@ -27,11 +27,18 @@ def list_model():
 
     helper = Helper()
 
-    threshold = 0.98
+    threshold = 0.75
 
     # load = torch.load("pickles/A2_T20190315_104245_S1.pt")A2_T20190316_103432_S1.pt
     # load = torch.load("pickles/dummy.pt")
-    load = torch.load("pickles/A2_T20190316_103432_S1.pt")
+    load = torch.load("pickles/A2_T20190317_082812_S2.pt")
+
+    '''
+    Best models on GCP:
+    
+    A2_T20190317_082812_S4.pt
+    A2_T20190317_082812_S2.pt
+    '''
 
     print("Class: ", load["optimizer"].__class__())
     print("Type: ", type(load["optimizer"]))
@@ -79,7 +86,7 @@ def list_model():
     total_len = len(testing_loader[1])
 
     with torch.no_grad():
-        for i, (list_1, list_2, labels) in enumerate(testing_loader[1]):
+        for i, (list_1, list_2, labels) in enumerate(testing_loader[2]):
             if type(list_1).__name__ != 'list' or type(list_2).__name__ != 'list':
                 print("Issues with testing file at loaction {0}".format(i))
                 print(list_1)
@@ -118,19 +125,26 @@ def list_model():
                 b = np.sqrt(np.sum(l2_avg * l2_avg))
                 # b = np.linalg.norm(l2_avg)
                 cos_sim = dot / (a * b)
+                if np.isnan(cos_sim):
+                    print("L1", l1_avg)
+                    print("L2", l2_avg)
             except ValueError:
-                print(list_1)
-                print(list_2)
+                print("L1", list_1)
+                print("L2", list_2)
                 continue
             # https://stackoverflow.com/questions/18424228/cosine-similarity-between-2-number-lists
 
             total += 1
-            correct += int(cos_sim > threshold and labels.item())
-            false_reject += int(cos_sim <= threshold and labels.item())
-            false_accept += int(cos_sim > threshold and not labels.item())
+            allow = cos_sim > threshold
+            # correct += int(cos_sim > threshold and labels.item())
+            correct += int((allow and labels.item()) or (not allow and not labels.item()))
+            false_reject += int(not allow and labels.item())
+            false_accept += int(allow and not labels.item())
+            print(cos_sim, cos_sim > threshold, labels.item())
 
             if (i+1) % 10 == 0:
-                print("Step {0}/{1}. C|FA|FR:{2}|{3}|{4}<T>:{5}".format(i, total_len, correct, false_accept, false_reject, total))
+                print("Step {0}/{1}. C|FA|FR:{2}|{3}|{4}<T>:{5}".format(i, total_len, correct,
+                                                                        false_accept, false_reject, total))
 
     print("Accuracy metrics:\nTotal{0}".format(total))
     print("Correct      : {0} \t|\t {1} %".format(correct, (correct / total)))
