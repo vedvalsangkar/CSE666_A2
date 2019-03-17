@@ -16,15 +16,18 @@ from torch.nn import functional as F
 
 class Block(nn.Module):
 
-    def __init__(self, layer1ch, layer2ch, bias=True):
+    def __init__(self, layer1ch, layer2ch, bias=False):
         super(Block, self).__init__()
 
         self.layer1 = nn.Sequential(nn.Conv2d(in_channels=layer1ch,
                                               out_channels=layer2ch,
-                                              kernel_size=1,
+                                              # kernel_size=1,
+                                              kernel_size=3,
                                               stride=1,
-                                              padding=0,
+                                              # padding=0,
+                                              padding=1,
                                               bias=bias),
+                                    nn.BatchNorm2d(layer2ch),
                                     nn.ReLU(),
                                     )
         self.layer2 = nn.Sequential(nn.Conv2d(in_channels=layer2ch,
@@ -33,32 +36,31 @@ class Block(nn.Module):
                                               stride=1,
                                               padding=1,
                                               bias=bias),
-                                    nn.ReLU(),
+                                    nn.BatchNorm2d(layer2ch)
+                                    # nn.ReLU(),
                                     )
-        self.layer3 = nn.Sequential(nn.Conv2d(in_channels=layer2ch,
-                                              out_channels=layer2ch,
-                                              kernel_size=1,
-                                              stride=1,
-                                              padding=0,
-                                              bias=bias),
-                                    nn.ReLU(),
-                                    )
-        # self.layer1 = nn.Conv2d(layer1ch, layer2ch, kernel_size=3, stride=1, padding=1, bias=bias)
-        # self.layer2 = nn.Conv2d(layer2ch, layer2ch, kernel_size=3, stride=1, padding=1, bias=bias)
-        # self.layer3 = nn.Conv2d(layer2ch, layer2ch, kernel_size=3, stride=1, padding=1, bias=bias)
-        # self.res_layer = nn.Sequential()
+        # self.layer3 = nn.Sequential(nn.Conv2d(in_channels=layer2ch,
+        #                                       out_channels=layer2ch,
+        #                                       kernel_size=1,
+        #                                       stride=1,
+        #                                       padding=0,
+        #                                       bias=bias),
+        #                             nn.ReLU(),
+        #                             )
+
         self.relu = nn.ReLU()
 
     def forward(self, x):
         out = self.layer1(x)
         out = self.layer2(out)
-        out = self.layer3(out)
+        # out = self.layer3(out)
         # out += self.res_layer(x)
         out += x
         # out = out.reshape(out.size(0), -1)
         # out = self.fc1(out)
         # out = self.fc(out)
         return self.relu(out)
+        # return out
 
 
 class ResNet(nn.Module):
@@ -70,15 +72,22 @@ class ResNet(nn.Module):
     resnet101 : 3,4,23,3 with 3 layer block.
     """
 
-    def __init__(self, num_classes=500, bias=True):
+    def __init__(self, num_classes=500, bias=False):
+        """
+        ResNet constructor class.
+        :param num_classes : Number of classes (default 500).
+        :param bias        : Bias for the layers
+        """
         super(ResNet, self).__init__()
 
         # Dropout rate
         self.do_rate = 0.1
 
+        self.temperature = 0.9
+
         # 203x202 image with 32 channels in the last superblock and 2x2 MaxPool layer at the end.
         self.L5_out_size = int(50 * 50 * 32)
-        # 203->101->50->25
+        # 203->101->50(we are here)->25
 
         # Final features
         self.features = 1024
@@ -92,11 +101,11 @@ class ResNet(nn.Module):
                                    nn.ReLU(),
                                    )
 
-        self.layer1 = self.build_layer(3, Block, 16, 16)
+        self.layer1 = self._build_layer(3, Block, 16, 16)
 
         # self.layer1_5 = nn.MaxPool2d(kernel_size=2, stride=2)       # Size is halved
 
-        self.layer2 = self.build_layer(4, Block, 16, 16)
+        self.layer2 = self._build_layer(4, Block, 16, 16)
 
         self.layer2_5 = nn.Sequential(nn.Conv2d(in_channels=16,
                                                 out_channels=32,
@@ -110,11 +119,11 @@ class ResNet(nn.Module):
                                       )  # Size is halved
 
         # self.layer3 = self.build_layer(23, Block, 32, 32)
-        self.layer3 = self.build_layer(6, Block, 32, 32)
+        self.layer3 = self._build_layer(6, Block, 32, 32)
 
         # self.layer3_5 = nn.MaxPool2d(kernel_size=2, stride=2)       # Size is halved
 
-        self.layer4 = self.build_layer(3, Block, 32, 32)
+        self.layer4 = self._build_layer(3, Block, 32, 32)
 
         self.layer5 = nn.Sequential(nn.MaxPool2d(kernel_size=2,
                                                  stride=2),
@@ -123,11 +132,13 @@ class ResNet(nn.Module):
 
         self.feat_layer = nn.Sequential(nn.Linear(self.L5_out_size, self.features),
                                         nn.ReLU(),
+                                        # nn.Tanh(),
                                         # nn.Dropout(self.do_rate)
                                         )
         self.class_layer = nn.Sequential(nn.Linear(self.features, num_classes),
                                          # nn.ReLU(),
-                                         nn.LogSoftmax(dim=1)
+                                         # nn.LogSoftmax(dim=1)
+                                         # nn.Softmax(dim=1)
                                          )
 
     def forward(self, x):
@@ -153,29 +164,43 @@ class ResNet(nn.Module):
             #
             # pre_sm = np.divide(np.exp(pre_sm), np.sum(np.exp(pre_sm), 1).reshape(16, 1))
             #
-            # out = F.softmax(out, 1)
+            out = F.log_softmax(out / self.temperature, 1)
         # else:
 
         #     out = out
         # print(out.numpy())
         return out
 
-    def build_layer(self, num_blocks, block_class, in_ch, out_ch):
-        layers = []
+    @staticmethod
+    def _build_layer(num_blocks, block_class, in_ch, out_ch):
+        """
+        Static method defined to create nested nn.Module classes for deep residual network.
+        :param num_blocks  : Number of blocks of sub-class to add.
+        :param block_class : Class of the block to be added.
+        :param in_ch       : Input planes i.e. channels of input image/previous convolution.
+        :param out_ch      : Number of planes i.e. channels of output after convolution.
+        :return:
+        """
 
-        layers.append(block_class(layer1ch=in_ch, layer2ch=out_ch))
+        layers = [block_class(layer1ch=in_ch, layer2ch=out_ch)]
+
         for n in range(num_blocks - 1):
             layers.append(block_class(layer1ch=out_ch, layer2ch=out_ch))
         return nn.Sequential(*layers)
+
+    def set_temperature(self, temp):
+        self.temperature = temp
 
 
 def get_model(device, opt='Adam', num_classes=500, lamb=0.01, learning_rate=0.01):
     model = ResNet(num_classes=num_classes).to(device)
     criterion = nn.CrossEntropyLoss()
     if opt == 'Adam':
-        optimizer = optim.Adam(model.parameters(), lr=learning_rate, weight_decay=lamb, amsgrad=True)
+        optimizer = optim.Adam(model.parameters(), lr=learning_rate, weight_decay=lamb, amsgrad=False,)
     elif opt == 'SGD':
         optimizer = optim.SGD(model.parameters(), lr=learning_rate, weight_decay=lamb)
+    elif opt == 'RMS':
+        optimizer = optim.RMSprop(model.parameters(), lr=learning_rate, weight_decay=lamb, momentum=0.1, centered=True)
     else:
         print("Unknown value. Choosing Adam instead.")
         optimizer = optim.Adam(model.parameters(), lr=learning_rate, weight_decay=lamb)

@@ -27,10 +27,11 @@ def list_model():
 
     helper = Helper()
 
-    threshold = 0.75
+    threshold = 0.98
 
-    # load = torch.load("pickles/A2_T20190315_104245_S1.pt")
-    load = torch.load("pickles/dummy.pt")
+    # load = torch.load("pickles/A2_T20190315_104245_S1.pt")A2_T20190316_103432_S1.pt
+    # load = torch.load("pickles/dummy.pt")
+    load = torch.load("pickles/A2_T20190316_103432_S1.pt")
 
     print("Class: ", load["optimizer"].__class__())
     print("Type: ", type(load["optimizer"]))
@@ -43,18 +44,6 @@ def list_model():
 
     loaded_model.eval()
 
-    child_list = get_list(loaded_model)
-
-    # print("=========")
-    # print("Children:")
-    # print("=========")
-    # for c in child_list:
-    #     print(c)
-    #     print("-----")
-    #
-    # print("=========")
-
-    # chopped_m = nn.Sequential(*child_list[:-1])
 
     # training_set, training_loader = helper.get_data(mode="train",
     #                                                 training_batch_size=10
@@ -95,6 +84,7 @@ def list_model():
                 print("Issues with testing file at loaction {0}".format(i))
                 print(list_1)
                 print(list_2)
+                continue
             # print(list_1)
             # print(list_2)
             # print(labels)
@@ -102,18 +92,24 @@ def list_model():
             l1_avg = np.zeros([1, loaded_model.features])
             l2_avg = np.zeros([1, loaded_model.features])
             for im in list_1:
-                # print(im[0])
-                image = Image.open(im[0])
-                # print(image)
-                tensor_img = to_tensor(image).to(device)
-                output = loaded_model(tensor_img.unsqueeze(0))
-                l1_avg += output.cpu().numpy()
+                try:
+                    # print(im[0])
+                    image = Image.open(im[0])
+                    # print(image)
+                    tensor_img = to_tensor(image).to(device)
+                    output = loaded_model(tensor_img.unsqueeze(0))
+                    l1_avg += output.cpu().numpy()
+                except FileNotFoundError:
+                    print("File {0} not found. Skipping.".format(im))
             l1_avg /= len(list_1)
             for im in list_2:
-                image = Image.open(im[0])
-                tensor_img = to_tensor(image).to(device)
-                output = loaded_model(tensor_img.unsqueeze(0))
-                l2_avg += output.cpu().numpy()
+                try:
+                    image = Image.open(im[0])
+                    tensor_img = to_tensor(image).to(device)
+                    output = loaded_model(tensor_img.unsqueeze(0))
+                    l2_avg += output.cpu().numpy()
+                except FileNotFoundError:
+                    print("File {0} not found. Skipping.".format(im))
             l2_avg /= len(list_2)
 
             try:
@@ -133,7 +129,7 @@ def list_model():
             false_reject += int(cos_sim <= threshold and labels.item())
             false_accept += int(cos_sim > threshold and not labels.item())
 
-            if (i+1) % 100 == 0:
+            if (i+1) % 10 == 0:
                 print("Step {0}/{1}. C|FA|FR:{2}|{3}|{4}<T>:{5}".format(i, total_len, correct, false_accept, false_reject, total))
 
     print("Accuracy metrics:\nTotal{0}".format(total))
