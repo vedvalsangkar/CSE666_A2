@@ -3,7 +3,7 @@
 # The following model has been built with the following site as reference:
 # https://github.com/kuangliu/pytorch-cifar/blob/master/models/resnet.py
 #
-# The nested nn.Module class structure was picked up from this site.
+# The nested nn.Module class structure and _build_layer method was adapted up from this site.
 #
 
 
@@ -173,14 +173,31 @@ class ResNet(nn.Module):
         return nn.Sequential(*layers)
 
     def set_temperature(self, temp):
+        """
+        Sets the parameter to modify the output just before the final classification layer.
+
+        :param temp: Factor by which to DIVIDE the output.
+        :return:
+        """
         self.temperature = temp
 
 
 def get_model(device, opt='Adam', num_classes=500, lamb=0.01, learning_rate=0.01, final_features=1024):
+    """
+    Method to create and return model, loss criterion and optimizer using the parameters provided.
+    :param device         : Device for calculation (CPU or CUDA)
+    :param opt            : Optimizer to use. Default 'Adam'.
+    :param num_classes    : Number of classes.
+    :param lamb           : Weight decay (L2 norm/regularizer)
+    :param learning_rate  : Model learning rate.
+    :param final_features : Number of nodes to put on the penultimate layer which is the feature layer.
+    :return:              : Model, loss criterion and optimizer.
+    """
 
     model = ResNet(num_classes=num_classes, final_features=final_features).to(device)
+
     criterion = nn.CrossEntropyLoss()
-    # criterion = nn.NLLLoss()
+
     if opt == 'Adam':
         optimizer = optim.Adam(model.parameters(), lr=learning_rate, weight_decay=lamb, amsgrad=False,)
     elif opt == 'SGD':
@@ -192,3 +209,16 @@ def get_model(device, opt='Adam', num_classes=500, lamb=0.01, learning_rate=0.01
         optimizer = optim.Adam(model.parameters(), lr=learning_rate, weight_decay=lamb)
 
     return model, criterion, optimizer
+
+
+def get_model_only(device, num_classes=500, final_features=1024):
+    """
+    Method to create and return model only. This is for evaluation part.
+
+    :param device         : Device for calculation (CPU or CUDA)
+    :param num_classes    : Number of classes.
+    :param final_features : Number of nodes to put on the penultimate layer which is the feature layer.
+    :return:              : Model.
+    """
+
+    return ResNet(num_classes=num_classes, final_features=final_features).to(device)

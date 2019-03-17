@@ -2,7 +2,6 @@
 
 import time
 import argparse as ap
-# from matplotlib import pyplot as plt
 
 import torch
 from torch import cuda
@@ -27,11 +26,14 @@ def main(batch_size, num_epochs, lr, file_write, flag_dummy, temperature, lr_dec
 
     # ''' ---------------------Parameters---------------------'''
     device = torch.device("cuda:0" if cuda.is_available() else "cpu")
+
     # optim_name = 'SGD'
-    optim_name = 'Adam'
     # optim_name = 'RMS'
+    optim_name = 'Adam'
+
     batch_print = 50
     op_dir = "pickles/"
+
     t_stmp = time.strftime("%Y%m%d_%H%M%S", time.gmtime())
 
     # Creating a file to store the name of the latest models
@@ -44,20 +46,10 @@ def main(batch_size, num_epochs, lr, file_write, flag_dummy, temperature, lr_dec
 
     helper.log(msg="Starting data loading.")
 
-    # training_set, training_loader, testing_set, testing_loader = helper.get_data(mode="train",
     training_set, training_loader = helper.get_data(mode="train",
                                                     training_batch_size=batch_size
                                                     )
     helper.log(msg="Finished data loading. Starting main training.")
-
-    # Following code only for creating a dummy file for testing pipeline.
-    # flag_dummy = False
-    # noinspection PyBroadException
-    # try:
-    #     f = open(op_dir + "dummy.pt", 'r')
-    #     f.close()
-    # except:
-    #     flag_dummy = True
 
     for set_n in range(1, 11):
 
@@ -66,7 +58,6 @@ def main(batch_size, num_epochs, lr, file_write, flag_dummy, temperature, lr_dec
         model, criterion, optimizer = mod.get_model(device, optim_name, lamb=0, learning_rate=init_lr, final_features=features)
         model.train(True)
         model.set_temperature(temperature)
-        # print(type(optimizer))
 
         if flag_dummy:
             helper.log(msg="\nCreating dummy file.\n")
@@ -81,11 +72,8 @@ def main(batch_size, num_epochs, lr, file_write, flag_dummy, temperature, lr_dec
 
         helper.log(msg="\nStart of split {0}\n".format(set_n))
 
-        # https://stackoverflow.com/questions/32558805/ceil-and-floor-equivalent-in-python-3-without-math-module
-        # total_len = -(-training_set[set_n].__len__() // batch_size)
         total_len = len(training_loader[set_n])
 
-        # total_len = training_set[set_n].__len__()
         running_loss = 0.0
         cor = 0
         tot = 0
@@ -100,15 +88,11 @@ def main(batch_size, num_epochs, lr, file_write, flag_dummy, temperature, lr_dec
                 inp = images.to(device)
                 lab = labels.to(device)
 
-                # a = images.size()
-
                 # Reset gradients before processing
                 optimizer.zero_grad()
 
                 # Get model output
                 out = model(inp)
-                # pre = out
-                # pre = pre.cpu().detach().numpy()
 
                 # Calculate loss
                 loss = criterion(out, lab)
@@ -130,15 +114,9 @@ def main(batch_size, num_epochs, lr, file_write, flag_dummy, temperature, lr_dec
                 # logger.log(msg="\rLoss = {0}        ".format(l), end="")
                 if (i + 1) % batch_print == 0:
 
-                    # plt.imsave("img/im_{0}_{1}_{2}.jpg".format(set_n, epoch, i+1),
-                    #            images[0].numpy().transpose(1, 2, 0))
-
-                    # print(predicted, lab)
-                    # logger.log(msg="Epoch " + str(epoch) + " Step " + str(i + 1) + "/" + str(total_len), end="\t")
-                    # logger.log(msg="\rEpoch: {0}, step: {1}/{2}".format(epoch+1, i+1, total_len), end="\t")
                     helper.log(msg="Split: {3}, Epoch: {0}, step: {1}/{2} ".format(epoch + 1, i + 1, total_len, set_n),
                                end="\t")
-                    # logger.log(msg="Running Loss data: ", loss.data)
+
                     helper.log(msg="Running Loss (avg): {0:.06f}, Past: {1:.06f}".format((running_loss / batch_print),
                                                                                          (past_loss / batch_print)),
                                end="\t")
@@ -158,7 +136,6 @@ def main(batch_size, num_epochs, lr, file_write, flag_dummy, temperature, lr_dec
                     running_loss = 0.0
                     cor_b = 0
                     tot_b = 0
-                    # optimizer.zero_grad()
 
         filename = op_dir + "A2_T{1}_S{0}.pt".format(set_n, t_stmp)
 
