@@ -15,9 +15,8 @@ from PIL import Image
 from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.metrics import roc_curve, auc
 from matplotlib import pyplot as plt
-# from itertools import cycle
 
-from torch import cuda, nn
+from torch import cuda
 from torchvision import transforms
 
 import model as mod
@@ -26,23 +25,22 @@ from classes import Helper
 
 
 def get_list(input_model):
+    """
+    Lists the layers of the given model.
+    :param input_model : Model.
+    :return:           : List of layers.
+    """
     return list(input_model.children())
 
 
 def load_model(filename, device):
-    # device = torch.device("cuda:0" if cuda.is_available() else "cpu")
-
-    # load = torch.load("pickles/A2_T20190317_104005_S1.pt")
+    """
+    Loads and returns the module from the saved file.
+    :param filename : File where the model is pickled.
+    :param device   : Device where to deploy the model (CPU/GPU).
+    :return:        : Loaded model.
+    """
     load = torch.load("pickles/"+filename)
-
-    '''
-    Best models on GCP:
-
-    A2_T20190317_104005_S1.pt
-
-    A2_T20190317_082812_S4.pt
-    A2_T20190317_082812_S2.pt
-    '''
 
     loaded_model = mod.get_model_only(device, final_features=load["features"])
 
@@ -52,16 +50,16 @@ def load_model(filename, device):
 
 
 def evaluate(filename):
+    """
+    Evaluate the models based on the timestamp provided.
+    :param filename: Timestamp of the latest run set.
+    :return:
+    """
     device = torch.device("cuda:0" if cuda.is_available() else "cpu")
 
     helper = Helper()
 
     testing_set, testing_loader = helper.get_data(mode="test", testing_batch_size=1)
-
-    # correct = 0
-    # total = 0
-    # false_reject = 0
-    # false_accept = 0
 
     print("Starting evaluation")
 
@@ -181,6 +179,12 @@ def evaluate(filename):
 
 
 def single_eval(filename, split):
+    """
+    Evaluate a specific model split based on the timestamp and split number provided.
+    :param filename : Timestamp of the latest run set.
+    :param split    : Split number to evaluate.
+    :return:
+    """
 
     device = torch.device("cuda:0" if cuda.is_available() else "cpu")
 
@@ -257,7 +261,6 @@ def single_eval(filename, split):
                 print("Issues with testing file at location {0}".format(i))
                 print(list_1)
                 print(list_2)
-            #     print(score[1][i], true_val[1][i])
 
         # Code to evaluate ROC graph is taken from the official documentation.
         # https://scikit-learn.org/stable/auto_examples/model_selection/plot_roc.html#sphx-glr-auto-examples-model-selection-plot-roc-py
