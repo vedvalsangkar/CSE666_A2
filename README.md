@@ -1,4 +1,4 @@
-#  Unconstrained Phase Recognizer
+#  Unconstrained Face Recognizer
 
 CSE 666 Assignment 2 Repository
 
